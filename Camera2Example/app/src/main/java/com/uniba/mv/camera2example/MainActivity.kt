@@ -3,7 +3,6 @@ package com.uniba.mv.camera2example
 import CameraView
 import android.content.Context
 import android.content.pm.PackageManager
-import android.content.res.Resources.Theme
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -13,7 +12,6 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
@@ -22,7 +20,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.uniba.mv.camera2example.ui.theme.Camera2ExampleTheme
@@ -125,10 +122,8 @@ fun MainView(ambientLightValue: MutableState<Float>) {
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Box(modifier = Modifier
-            .fillMaxSize(),
-            contentAlignment = Alignment.Center
+        Box(modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
         ) {
             CameraView()
         }

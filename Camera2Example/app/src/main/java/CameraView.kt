@@ -1,23 +1,23 @@
-import android.annotation.SuppressLint
 import android.content.Context
-import android.util.Log
+import android.hardware.camera2.CameraManager
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FlashlightOn
 import androidx.compose.material.icons.outlined.FlipCameraAndroid
-import androidx.compose.material.icons.outlined.FlipCameraIos
-import androidx.compose.material.icons.outlined.Light
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -30,7 +30,14 @@ import kotlin.coroutines.suspendCoroutine
 fun CameraView() {
 
     val context = LocalContext.current
-    var lensFacing = CameraSelector.LENS_FACING_BACK
+
+    // FlashLight
+    var isFlashOn by remember { mutableStateOf(false) }
+    val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+
+
+
+    var lensFacing = CameraSelector.LENS_FACING_FRONT
     val lifecycleOwner = LocalLifecycleOwner.current
     var preview = Preview.Builder().build()
     var previewView = remember { PreviewView(context) }
@@ -46,17 +53,21 @@ fun CameraView() {
         preview.setSurfaceProvider(previewView.surfaceProvider)
     }
 
-    Column {
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ){
         AndroidView(
             { previewView },
             modifier = Modifier
-                .width(380.dp)
-                .height(380.dp)
-                .clip(RoundedCornerShape(500.dp))
+                .width(250.dp)
+                .height(280.dp)
+                .clip(RoundedCornerShape(1000.dp))
         )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
         ){
             IconButton(onClick = {
 
@@ -77,9 +88,9 @@ fun CameraView() {
             }
 
             IconButton(onClick = {
-                onOffTorch()
+
             }) {
-                Icon(imageVector = Icons.Outlined.Light, contentDescription = "Torch")
+                Icon(imageVector = Icons.Outlined.FlashlightOn, contentDescription = "Torch")
             }
         }
     }
@@ -91,8 +102,4 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspend
             continuation.resume(cameraProvider.get())
         }, ContextCompat.getMainExecutor(this))
     }
-}
-
-private fun onOffTorch() {
-
 }
