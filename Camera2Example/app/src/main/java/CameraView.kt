@@ -1,5 +1,6 @@
 import android.content.Context
 import android.hardware.camera2.CameraManager
+import android.widget.Toast
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -32,8 +33,8 @@ fun CameraView() {
     val context = LocalContext.current
 
     // FlashLight
-    var isFlashOn by remember { mutableStateOf(false) }
-    val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+    val isFlashOn = remember { mutableStateOf(false) }
+    val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager // initializing our camera manager.
 
 
 
@@ -88,7 +89,8 @@ fun CameraView() {
             }
 
             IconButton(onClick = {
-
+                isFlashOn.value = !isFlashOn.value
+                enableFlashlight(cameraManager, isFlashOn.value, context)
             }) {
                 Icon(imageVector = Icons.Outlined.FlashlightOn, contentDescription = "Torch")
             }
@@ -101,5 +103,27 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspend
         cameraProvider.addListener({
             continuation.resume(cameraProvider.get())
         }, ContextCompat.getMainExecutor(this))
+    }
+}
+
+private fun enableFlashlight(cameraManager: CameraManager, enable: Boolean, context: Context) {
+
+    // creating a string for camera ID
+    lateinit var cameraID: String
+
+    try {
+        // O means back camera unit, 1 means front camera unit
+        // get camera id for back camera as we will be using torch for back camera
+        cameraID = cameraManager.cameraIdList[0]
+
+        if(enable) {
+            cameraManager.setTorchMode(cameraID, true)
+        } else {
+            cameraManager.setTorchMode(cameraID, false)
+        }
+
+        Toast.makeText(context, "Torch turned " + if (enable) "ON" else "OFF", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 }
