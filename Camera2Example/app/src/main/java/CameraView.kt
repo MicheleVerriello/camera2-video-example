@@ -34,7 +34,7 @@ import kotlin.coroutines.suspendCoroutine
 fun CameraView() {
 
     val context = LocalContext.current
-
+    val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
     // FlashLight
     val isFlashOn = remember { mutableStateOf(false) }
     val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager // initializing our camera manager.
@@ -49,27 +49,12 @@ fun CameraView() {
         .requireLensFacing(lensFacing)
         .build()
 
-    val stateCallback: CameraDevice.StateCallback = object : CameraDevice.StateCallback() {
-        override fun onOpened(camera: CameraDevice) {
-            preview.setSurfaceProvider(previewView.surfaceProvider)
-        }
+    val cameraProvider = cameraProviderFuture.get()
 
-        override fun onDisconnected(camera: CameraDevice) {
-            camera.close()
-        }
+    cameraProvider.unbindAll()
+    cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview)
 
-        override fun onError(camera: CameraDevice, error: Int) {
-            camera.close()
-        }
-    }
-
-    LaunchedEffect(lensFacing) {
-        val cameraProvider = context.getCameraProvider()
-        cameraProvider.unbindAll()
-        cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview)
-
-        preview.setSurfaceProvider(previewView.surfaceProvider)
-    }
+    preview.setSurfaceProvider(previewView.surfaceProvider)
 
     Column(
         verticalArrangement = Arrangement.Center,
@@ -90,8 +75,16 @@ fun CameraView() {
             IconButton(
                 onClick = {
 
-                    var actualCameraId = if(lensFacing == 0) "1" else "0"
-                    flipCamera(cameraManager, actualCameraId, stateCallback, context)
+                    lensFacing = if(lensFacing ==  CameraSelector.LENS_FACING_FRONT) CameraSelector.LENS_FACING_BACK else CameraSelector.LENS_FACING_FRONT
+
+                    cameraSelector = CameraSelector.Builder()
+                        .requireLensFacing(lensFacing)
+                        .build()
+
+                    cameraProvider.unbindAll()
+                    cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview)
+
+                    preview.setSurfaceProvider(previewView.surfaceProvider)
                 }
             ) {
                 Column (
@@ -117,7 +110,7 @@ fun CameraView() {
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.FlashlightOn,
-                        contentDescription = "Flashligh",
+                        contentDescription = "Flashlight",
                         modifier = Modifier.size(32.dp)
                     )
                     Text("Flashlight")
