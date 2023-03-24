@@ -35,9 +35,9 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            Log.i("kilo", "Permission granted")
+            Log.i("Permissions", "Permission granted")
         } else {
-            Log.i("kilo", "Permission denied")
+            Log.i("Permissions", "Permission denied")
         }
     }
 
@@ -57,7 +57,6 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         }
 
         requestCameraPermission()
-
 
         // Get an instance of the sensor service, and use that to get an instance of
         // a particular sensor.
@@ -79,29 +78,18 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
 
     override fun onSensorChanged(p0: SensorEvent?) {
-        if (p0 != null) {
-            Log.i("onSensorChanged", "p0.values size = ${p0.values.size}")
-            Log.i("onSensorChanged", "p0.values = ${p0.values[0]}")
+        if (p0 != null)
             ambientLightValue.value = p0.values[0]
-        } else {
-            Log.i("onSensorChanged", "p0 is null")
-        }
     }
 
-    override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
-        Log.i("onAccuracyChanged", "p0 = ${p0.toString()}")
-        Log.i("onAccuracyChanged", "p1 = $p1")
-    }
+    override fun onAccuracyChanged(p0: Sensor?, p1: Int) {}
 
     private fun requestCameraPermission() {
         when {
             ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA)
-                    == PackageManager.PERMISSION_GRANTED -> {
-                Log.i("kilo", "Permission previously granted")
-            }
+                    == PackageManager.PERMISSION_GRANTED -> {}
 
-            ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.CAMERA ) ->
-                Log.i("kilo", "Show camera permissions dialog")
+            ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.CAMERA ) -> {}
 
             else -> requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
         }

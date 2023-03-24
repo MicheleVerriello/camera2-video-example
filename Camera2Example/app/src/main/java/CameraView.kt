@@ -1,24 +1,17 @@
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
-import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
-import android.util.Log
-import android.widget.Toast
-import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.FlashlightOff
 import androidx.compose.material.icons.outlined.FlashlightOn
 import androidx.compose.material.icons.outlined.FlipCameraAndroid
 import androidx.compose.runtime.*
@@ -30,8 +23,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -44,6 +38,16 @@ fun CameraView() {
     val isFlashOn = remember { mutableStateOf(false) }
     val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager // initializing our camera manager.
 
+    // Image analysis
+    val executor: ExecutorService = Executors.newSingleThreadExecutor()
+
+    val analyzerUseCase = ImageAnalysis.Builder()
+        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+        .build()
+
+    analyzerUseCase.setAnalyzer(executor) { imageProxy -> // Use imageProxy object to analyze image
+        imageProxy.close()
+    }
 
 
     var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
@@ -60,7 +64,8 @@ fun CameraView() {
         cameraProvider.bindToLifecycle(
             lifecycleOwner,
             cameraSelector,
-            preview
+            preview,
+            analyzerUseCase
         )
 
         preview.setSurfaceProvider(previewView.surfaceProvider)
