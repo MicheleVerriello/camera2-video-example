@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FlashlightOn
 import androidx.compose.material.icons.outlined.FlipCameraAndroid
@@ -70,29 +71,49 @@ fun CameraView() {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ){
-            IconButton(onClick = {
+            IconButton(
+                onClick = {
+                    lensFacing = if(lensFacing == CameraSelector.LENS_FACING_BACK) {
+                        CameraSelector.LENS_FACING_FRONT
+                    } else {
+                        CameraSelector.LENS_FACING_BACK
+                    }
 
-                lensFacing = if(lensFacing == CameraSelector.LENS_FACING_BACK) {
-                    CameraSelector.LENS_FACING_FRONT
-                } else {
-                    CameraSelector.LENS_FACING_BACK
+                    cameraSelector = CameraSelector.Builder()
+                        .requireLensFacing(lensFacing)
+                        .build()
+
+                    preview = Preview.Builder().build()
                 }
-
-                cameraSelector = CameraSelector.Builder()
-                    .requireLensFacing(lensFacing)
-                    .build()
-
-                preview = Preview.Builder().build()
-
-            }) {
-                Icon(imageVector = Icons.Outlined.FlipCameraAndroid, contentDescription = "Flip camera")
+            ) {
+                Column (
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.FlipCameraAndroid,
+                        contentDescription = "Flip camera",
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Text("Flip camera")
+                }
             }
 
             IconButton(onClick = {
                 isFlashOn.value = !isFlashOn.value
                 enableFlashlight(cameraManager, isFlashOn.value, context)
             }) {
-                Icon(imageVector = Icons.Outlined.FlashlightOn, contentDescription = "Torch")
+                Column (
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.FlashlightOn,
+                        contentDescription = "Flashligh",
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Text("Flashlight")
+                }
             }
         }
     }
