@@ -1,12 +1,14 @@
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
+import android.util.Log
 import android.widget.Toast
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
@@ -19,11 +21,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -46,6 +48,20 @@ fun CameraView() {
     var cameraSelector = CameraSelector.Builder()
         .requireLensFacing(lensFacing)
         .build()
+
+    val stateCallback: CameraDevice.StateCallback = object : CameraDevice.StateCallback() {
+        override fun onOpened(camera: CameraDevice) {
+            preview.setSurfaceProvider(previewView.surfaceProvider)
+        }
+
+        override fun onDisconnected(camera: CameraDevice) {
+            camera.close()
+        }
+
+        override fun onError(camera: CameraDevice, error: Int) {
+            camera.close()
+        }
+    }
 
     LaunchedEffect(lensFacing) {
         val cameraProvider = context.getCameraProvider()
@@ -73,17 +89,9 @@ fun CameraView() {
         ){
             IconButton(
                 onClick = {
-                    lensFacing = if(lensFacing == CameraSelector.LENS_FACING_BACK) {
-                        CameraSelector.LENS_FACING_FRONT
-                    } else {
-                        CameraSelector.LENS_FACING_BACK
-                    }
 
-                    cameraSelector = CameraSelector.Builder()
-                        .requireLensFacing(lensFacing)
-                        .build()
-
-                    preview = Preview.Builder().build()
+                    var actualCameraId = if(lensFacing == 0) "1" else "0"
+                    flipCamera(cameraManager, actualCameraId, stateCallback, context)
                 }
             ) {
                 Column (
@@ -101,7 +109,7 @@ fun CameraView() {
 
             IconButton(onClick = {
                 isFlashOn.value = !isFlashOn.value
-                enableFlashlight(cameraManager, isFlashOn.value, context)
+                enableFlashlight(cameraManager, isFlashOn.value)
             }) {
                 Column (
                     verticalArrangement = Arrangement.Center,
@@ -127,7 +135,7 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspend
     }
 }
 
-private fun enableFlashlight(cameraManager: CameraManager, enable: Boolean, context: Context) {
+private fun enableFlashlight(cameraManager: CameraManager, enable: Boolean) {
 
     // creating a string for camera ID
     lateinit var cameraID: String
@@ -142,9 +150,23 @@ private fun enableFlashlight(cameraManager: CameraManager, enable: Boolean, cont
         } else {
             cameraManager.setTorchMode(cameraID, false)
         }
-
-        Toast.makeText(context, "Torch turned " + if (enable) "ON" else "OFF", Toast.LENGTH_SHORT).show()
     } catch (e: Exception) {
         e.printStackTrace()
+    }
+}
+
+fun flipCamera(cameraManager: CameraManager, actualCameraId: String, stateCallback: CameraDevice.StateCallback, context: Context) {
+    cameraManager.cameraIdList
+    Log.i("flipCamera", "Actual camera is $actualCameraId")
+    Log.i("flipCamera", "Camera id List")
+    for(cam in cameraManager.cameraIdList) {
+        Log.i("flipCamera", cam)
+    }
+
+    val cameraId = if(actualCameraId == "1") "0" else "1"
+    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA ) != PackageManager.PERMISSION_GRANTED ) {
+        Toast.makeText(context, "Cannot open camera", Toast.LENGTH_SHORT).show()
+    } else {
+        cameraManager.openCamera(cameraId, stateCallback, null)
     }
 }
