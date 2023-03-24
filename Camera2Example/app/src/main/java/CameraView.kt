@@ -5,22 +5,27 @@ import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
 import android.util.Log
 import android.widget.Toast
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.FlashlightOff
 import androidx.compose.material.icons.outlined.FlashlightOn
 import androidx.compose.material.icons.outlined.FlipCameraAndroid
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -34,27 +39,32 @@ import kotlin.coroutines.suspendCoroutine
 fun CameraView() {
 
     val context = LocalContext.current
-    val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+
     // FlashLight
     val isFlashOn = remember { mutableStateOf(false) }
     val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager // initializing our camera manager.
 
 
 
-    var lensFacing = CameraSelector.LENS_FACING_FRONT
+    var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
     val lifecycleOwner = LocalLifecycleOwner.current
-    var preview = Preview.Builder().build()
-    var previewView = remember { PreviewView(context) }
-    var cameraSelector = CameraSelector.Builder()
+    val preview = Preview.Builder().build()
+    val previewView = remember { PreviewView(context) }
+    val cameraSelector = CameraSelector.Builder()
         .requireLensFacing(lensFacing)
         .build()
 
-    val cameraProvider = cameraProviderFuture.get()
+    LaunchedEffect(lensFacing) {// this will run every time we change the lensFacing
+        val cameraProvider = context.getCameraProvider()
+        cameraProvider.unbindAll()
+        cameraProvider.bindToLifecycle(
+            lifecycleOwner,
+            cameraSelector,
+            preview
+        )
 
-    cameraProvider.unbindAll()
-    cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview)
-
-    preview.setSurfaceProvider(previewView.surfaceProvider)
+        preview.setSurfaceProvider(previewView.surfaceProvider)
+    }
 
     Column(
         verticalArrangement = Arrangement.Center,
@@ -67,55 +77,67 @@ fun CameraView() {
                 .height(280.dp)
                 .clip(RoundedCornerShape(1000.dp))
         )
-
+        Spacer(modifier = Modifier.height(20.dp))
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.LightGray)
+                .padding(16.dp),
             horizontalArrangement = Arrangement.Center
-        ){
-            IconButton(
-                onClick = {
-
-                    lensFacing = if(lensFacing ==  CameraSelector.LENS_FACING_FRONT) CameraSelector.LENS_FACING_BACK else CameraSelector.LENS_FACING_FRONT
-
-                    cameraSelector = CameraSelector.Builder()
-                        .requireLensFacing(lensFacing)
-                        .build()
-
-                    cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview)
-
-                    preview.setSurfaceProvider(previewView.surfaceProvider)
-                }
-            ) {
-                Column (
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.FlipCameraAndroid,
-                        contentDescription = "Flip camera",
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Text("Flip camera")
+        ) {
+            CameraFlipToggleButton(lensFacing) {
+                lensFacing = if (lensFacing == CameraSelector.LENS_FACING_FRONT) {
+                    CameraSelector.LENS_FACING_BACK
+                } else {
+                    CameraSelector.LENS_FACING_FRONT
                 }
             }
+            Spacer(modifier = Modifier.width(30.dp))
 
-            IconButton(onClick = {
+            FlashlightToggleButton() {
                 isFlashOn.value = !isFlashOn.value
                 enableFlashlight(cameraManager, isFlashOn.value)
-            }) {
-                Column (
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.FlashlightOn,
-                        contentDescription = "Flashlight",
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Text("Flashlight")
-                }
             }
+        }
+    }
+}
+
+// Widget camera flip
+@Composable
+private fun CameraFlipToggleButton(lensFacing: Int, onClick: () -> Unit) {
+    IconButton(
+        onClick = onClick
+    ) {
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.FlipCameraAndroid,
+                contentDescription = "Flip camera",
+                modifier = Modifier.size(32.dp)
+            )
+            Text(if (lensFacing == CameraSelector.LENS_FACING_FRONT) "Use back camera" else "Use front camera")
+        }
+    }
+}
+
+// Widget for flashlight button
+@Composable
+private fun FlashlightToggleButton(onClick: () -> Unit) {
+    IconButton(
+        onClick = onClick
+    ) {
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.FlashlightOn,
+                contentDescription = "Flashlight",
+                modifier = Modifier.size(32.dp)
+            )
+            Text("Flashlight")
         }
     }
 }
@@ -130,36 +152,10 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider = suspend
 
 private fun enableFlashlight(cameraManager: CameraManager, enable: Boolean) {
 
-    // creating a string for camera ID
-    lateinit var cameraID: String
-
+    val cameraId = cameraManager.cameraIdList[0]
     try {
-        // O means back camera unit, 1 means front camera unit
-        // get camera id for back camera as we will be using torch for back camera
-        cameraID = cameraManager.cameraIdList[0]
-
-        if(enable) {
-            cameraManager.setTorchMode(cameraID, true)
-        } else {
-            cameraManager.setTorchMode(cameraID, false)
-        }
+        cameraManager.setTorchMode(cameraId, enable)
     } catch (e: Exception) {
         e.printStackTrace()
-    }
-}
-
-fun flipCamera(cameraManager: CameraManager, actualCameraId: String, stateCallback: CameraDevice.StateCallback, context: Context) {
-    cameraManager.cameraIdList
-    Log.i("flipCamera", "Actual camera is $actualCameraId")
-    Log.i("flipCamera", "Camera id List")
-    for(cam in cameraManager.cameraIdList) {
-        Log.i("flipCamera", cam)
-    }
-
-    val cameraId = if(actualCameraId == "1") "0" else "1"
-    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CAMERA ) != PackageManager.PERMISSION_GRANTED ) {
-        Toast.makeText(context, "Cannot open camera", Toast.LENGTH_SHORT).show()
-    } else {
-        cameraManager.openCamera(cameraId, stateCallback, null)
     }
 }
