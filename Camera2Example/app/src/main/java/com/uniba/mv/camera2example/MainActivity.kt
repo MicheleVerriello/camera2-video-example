@@ -100,9 +100,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 fun MainView(ambientLightValue: MutableState<Float>) {
 
     Column {
-        Box(modifier = Modifier
-            .fillMaxWidth()
-        ){
+        Box(modifier = Modifier .fillMaxWidth()){
             Row {
                 Text(color = Color.Black, text = "Ambient Light \t")
                 Text(color = Color.Black, text = ambientLightValue.value.toString())

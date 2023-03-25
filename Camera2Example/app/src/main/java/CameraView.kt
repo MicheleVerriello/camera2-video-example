@@ -1,7 +1,16 @@
+import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.hardware.camera2.CameraManager
+import android.net.Uri
+import android.provider.MediaStore
+import android.util.Log
+import android.util.Size
+import android.widget.Toast
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -29,6 +38,7 @@ import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
+@androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
 @Composable
 fun CameraView() {
 
@@ -43,9 +53,14 @@ fun CameraView() {
 
     val analyzerUseCase = ImageAnalysis.Builder()
         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+        .setTargetResolution(Size(620, 480))
+        //.setOutputImageFormat(OUTPUT_IMAGE_FORMAT_RGBA_8888)
         .build()
 
-    analyzerUseCase.setAnalyzer(executor) { imageProxy -> // Use imageProxy object to analyze image
+    var i = 0
+
+    analyzerUseCase.setAnalyzer(executor) { imageProxy ->
+
         imageProxy.close()
     }
 
