@@ -37,7 +37,10 @@ import kotlin.coroutines.suspendCoroutine
 @Composable
 fun CameraView() {
 
+    var color: Color = Color.Red
+
     val detectedFaces = remember { mutableStateOf(0) }
+    val boxBgColor = remember { mutableStateOf(color) }
 
     val context = LocalContext.current
 
@@ -61,17 +64,20 @@ fun CameraView() {
             val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
             val detector = FaceDetection.getClient()
             // Pass image to an ML Kit Vision API
-            Log.e("MLKIT", "processing")
+            Log.e("ML Kit", "processing")
             detector.process(image)
                 .addOnSuccessListener { faces ->
-                    detectedFaces.value = faces.size
-                    Log.e("MLKIT", "detected ${faces.size} faces")
+                    if(faces.size == 1) {
+                        color = Color.Green
+                        boxBgColor.value = color
+                    }
+                    Log.e("ML Kit", "detected faces")
                 }
                 .addOnFailureListener { e ->
-                    Log.e("MLKIT", "Failure ${e.printStackTrace()}")
+                    Log.e("ML Kit", "Failure")
                 }
         } else {
-            Log.e("MLKIT", "mediaImage is null")
+            Log.e("ML Kit", "mediaImage is null")
         }
 
         //mediaImage?.close()
@@ -104,13 +110,21 @@ fun CameraView() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ){
-        AndroidView(
-            { previewView },
+        Box(
             modifier = Modifier
-                .width(250.dp)
-                .height(280.dp)
+                .size(360.dp, 360.dp)
                 .clip(RoundedCornerShape(1000.dp))
-        )
+                .background(color),
+            contentAlignment = Alignment.Center
+        ) {
+            AndroidView(
+                { previewView },
+                modifier = Modifier
+                    .width(350.dp)
+                    .height(350.dp)
+                    .clip(RoundedCornerShape(1000.dp))
+            )
+        }
         Spacer(modifier = Modifier.height(20.dp))
         Row(
             modifier = Modifier
