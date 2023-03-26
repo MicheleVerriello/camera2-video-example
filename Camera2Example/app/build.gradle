@@ -67,6 +67,9 @@ dependencies {
     implementation "androidx.camera:camera-lifecycle:$camerax_version"
     implementation "androidx.camera:camera-view:$camerax_version"
 
-// Icons
+    // Icons
     implementation "androidx.compose.material:material-icons-extended:$compose_ui_version"
+
+    // Face recognition
+    implementation 'com.google.mlkit:face-detection:16.1.5'
 }

@@ -1,16 +1,9 @@
-import android.content.ContentValues
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.hardware.camera2.CameraManager
-import android.net.Uri
-import android.provider.MediaStore
 import android.util.Log
 import android.util.Size
-import android.widget.Toast
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -33,6 +26,8 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.FaceDetection
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.coroutines.resume
@@ -41,6 +36,8 @@ import kotlin.coroutines.suspendCoroutine
 @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
 @Composable
 fun CameraView() {
+
+    val detectedFaces = remember { mutableStateOf(0) }
 
     val context = LocalContext.current
 
@@ -53,14 +50,31 @@ fun CameraView() {
 
     val analyzerUseCase = ImageAnalysis.Builder()
         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-        .setTargetResolution(Size(620, 480))
-        //.setOutputImageFormat(OUTPUT_IMAGE_FORMAT_RGBA_8888)
+        .setTargetResolution(Size(360, 480))
         .build()
 
-    var i = 0
 
     analyzerUseCase.setAnalyzer(executor) { imageProxy ->
 
+        val mediaImage = imageProxy.image
+        if (mediaImage != null) {
+            val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+            val detector = FaceDetection.getClient()
+            // Pass image to an ML Kit Vision API
+            Log.e("MLKIT", "processing")
+            detector.process(image)
+                .addOnSuccessListener { faces ->
+                    detectedFaces.value = faces.size
+                    Log.e("MLKIT", "detected ${faces.size} faces")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("MLKIT", "Failure ${e.printStackTrace()}")
+                }
+        } else {
+            Log.e("MLKIT", "mediaImage is null")
+        }
+
+        //mediaImage?.close()
         imageProxy.close()
     }
 
@@ -114,10 +128,12 @@ fun CameraView() {
             }
             Spacer(modifier = Modifier.width(30.dp))
 
-            FlashlightToggleButton() {
+            FlashlightToggleButton {
                 isFlashOn.value = !isFlashOn.value
                 enableFlashlight(cameraManager, isFlashOn.value)
             }
+
+            Text(text = "Detected Faces = ${detectedFaces.value}")
         }
     }
 }
