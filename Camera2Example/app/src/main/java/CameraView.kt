@@ -1,7 +1,6 @@
 import android.annotation.SuppressLint
 import android.content.Context
 import android.hardware.camera2.CameraManager
-import android.util.Log
 import android.util.Size
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -51,8 +50,7 @@ fun CameraView(analyzerUseCase: ImageAnalysis, executor: ExecutorService, detect
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val preview = Preview.Builder().apply {
-        setDefaultResolution(Size(100, 100))
-        setTargetAspectRatio(AspectRatio.RATIO_4_3)
+        setDefaultResolution(Size(640, 480))
     }.build()
 
     val previewView = remember { PreviewView(context) }
@@ -65,27 +63,24 @@ fun CameraView(analyzerUseCase: ImageAnalysis, executor: ExecutorService, detect
         val mediaImage = imageProxy.image
         if (mediaImage != null) {
             val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-            // Pass image to an ML Kit Vision API
+
+            // Pass image to ML Kit Vision API
             detector.process(image)
                 .addOnSuccessListener { faces ->
-                    Log.e("ML Kit", "detected ${faces.size} faces")
                     if(faces.size == 1) {
-                        if (boxBgColor.value != Color.Green) {
-                            boxBgColor.value = Color.Green
-                            showProgressBar.value = true
-                        }
-                    }else {
+                        boxBgColor.value = Color.Green
+                        showProgressBar.value = true
+                    } else {
                         boxBgColor.value = Color.Red
                         showProgressBar.value = false
                     }
+                    mediaImage.close()
+                    imageProxy.close()
                 }
-                .addOnFailureListener { e ->
-                    Log.e("ML Kit", "error $e")
+                .addOnFailureListener {
+                    it.printStackTrace()
                 }
             }
-
-        //mediaImage?.close()
-        imageProxy.close()
     }
 
 
@@ -110,16 +105,16 @@ fun CameraView(analyzerUseCase: ImageAnalysis, executor: ExecutorService, detect
     ){
         Box(
             modifier = Modifier
-                .size(370.dp, 370.dp)
-                .clip(RoundedCornerShape(1000.dp))
+                .size(320.dp, 360.dp)
+                .clip(RoundedCornerShape(800.dp))
                 .background(boxBgColor.value),
             contentAlignment = Alignment.Center
         ) {
             AndroidView(
                 { previewView },
                 modifier = Modifier
-                    .width(350.dp)
-                    .height(350.dp)
+                    .width(300.dp)
+                    .height(340.dp)
                     .clip(RoundedCornerShape(1000.dp))
             )
         }

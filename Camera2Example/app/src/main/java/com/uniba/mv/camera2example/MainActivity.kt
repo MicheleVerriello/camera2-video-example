@@ -9,6 +9,7 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
+import android.util.Size
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,6 +27,8 @@ import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.google.mlkit.vision.face.FaceDetectorOptions.CONTOUR_MODE_ALL
+import com.google.mlkit.vision.face.FaceDetectorOptions.ContourMode
 import com.uniba.mv.camera2example.ui.theme.Camera2ExampleTheme
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -50,12 +53,19 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Face recognition options
-        val options = FaceDetectorOptions.Builder()
-            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
-            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+
+        val highAccuracyOpts = FaceDetectorOptions.Builder()
+            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
             .build()
+
+
+        // Real-time contour detection
+        val realTimeOpts = FaceDetectorOptions.Builder()
+            .setContourMode(CONTOUR_MODE_ALL)
+            .build()
+
 
         val analyzerUseCase = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -64,7 +74,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         // Image analysis
         val executor: ExecutorService = Executors.newSingleThreadExecutor()
 
-        val detector = FaceDetection.getClient(options)
+        val detector = FaceDetection.getClient(realTimeOpts)
 
 
         setContent {
@@ -119,6 +129,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     }
 }
 
+@androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
 @Composable
 fun MainView(ambientLightValue: MutableState<Float>, analyzerUseCase: ImageAnalysis, executor: ExecutorService, detector: FaceDetector) {
 
