@@ -12,6 +12,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.ImageAnalysis
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
@@ -22,7 +23,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.mlkit.vision.face.FaceDetection
+import com.google.mlkit.vision.face.FaceDetector
+import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.uniba.mv.camera2example.ui.theme.Camera2ExampleTheme
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity(), SensorEventListener {
 
@@ -44,6 +50,23 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Face recognition options
+        val options = FaceDetectorOptions.Builder()
+            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+            .build()
+
+        val analyzerUseCase = ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+
+        // Image analysis
+        val executor: ExecutorService = Executors.newSingleThreadExecutor()
+
+        val detector = FaceDetection.getClient(options)
+
+
         setContent {
             Camera2ExampleTheme {
                 // A surface container using the 'background' color from the theme
@@ -51,7 +74,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
                     modifier = Modifier.fillMaxSize(),
                     color = Color.White,
                 ) {
-                    MainView(ambientLightValue)
+                    MainView(ambientLightValue, analyzerUseCase, executor, detector)
                 }
             }
         }
@@ -97,7 +120,7 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 }
 
 @Composable
-fun MainView(ambientLightValue: MutableState<Float>) {
+fun MainView(ambientLightValue: MutableState<Float>, analyzerUseCase: ImageAnalysis, executor: ExecutorService, detector: FaceDetector) {
 
     Column {
         Box(modifier = Modifier .fillMaxWidth()){
@@ -111,7 +134,7 @@ fun MainView(ambientLightValue: MutableState<Float>) {
         Box(modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
         ) {
-            CameraView()
+            CameraView(analyzerUseCase, executor, detector)
         }
     }
 }

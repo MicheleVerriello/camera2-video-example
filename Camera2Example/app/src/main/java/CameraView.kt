@@ -3,7 +3,6 @@ import android.content.Context
 import android.hardware.camera2.CameraManager
 import android.util.Log
 import android.util.Size
-import android.widget.Toast
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -26,20 +25,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.face.FaceDetection
-import com.google.mlkit.vision.face.FaceDetectorOptions
-import kotlinx.coroutines.delay
+import com.google.mlkit.vision.face.FaceDetector
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 @SuppressLint("RestrictedApi")
 @Composable
 @ExperimentalGetImage
-fun CameraView() {
+fun CameraView(analyzerUseCase: ImageAnalysis, executor: ExecutorService, detector: FaceDetector) {
 
-    var progress by remember { mutableStateOf(0.0f) }
+    val progress = remember { mutableStateOf(0.0f) }
     val showProgressBar = remember { mutableStateOf(false) }
 
     val cameraZoomRatio = remember { mutableStateOf(1f) }
@@ -51,27 +47,24 @@ fun CameraView() {
     val isFlashOn = remember { mutableStateOf(false) }
     val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager // initializing our camera manager.
 
-    val analyzerUseCase = ImageAnalysis.Builder()
-        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-        .setTargetResolution(Size(640, 480))
-        .build()
+    var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_FRONT) }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
+    val preview = Preview.Builder().apply {
+        setDefaultResolution(Size(100, 100))
+        setTargetAspectRatio(AspectRatio.RATIO_4_3)
+    }.build()
 
-    // Image analysis
-    val executor: ExecutorService = Executors.newSingleThreadExecutor()
+    val previewView = remember { PreviewView(context) }
 
-    // Face recognition options
-    val options = FaceDetectorOptions.Builder()
-        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
-        .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
-        .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
+    val cameraSelector = CameraSelector.Builder()
+        .requireLensFacing(lensFacing)
         .build()
 
     analyzerUseCase.setAnalyzer(executor) { imageProxy ->
         val mediaImage = imageProxy.image
         if (mediaImage != null) {
             val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-            val detector = FaceDetection.getClient(options)
             // Pass image to an ML Kit Vision API
             detector.process(image)
                 .addOnSuccessListener { faces ->
@@ -94,17 +87,6 @@ fun CameraView() {
         //mediaImage?.close()
         imageProxy.close()
     }
-
-    var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_FRONT) }
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val preview = Preview.Builder().apply {
-        setDefaultResolution(Size(640, 480))
-        setTargetAspectRatio(AspectRatio.RATIO_4_3)
-    }.build()
-    val previewView = remember { PreviewView(context) }
-    val cameraSelector = CameraSelector.Builder()
-        .requireLensFacing(lensFacing)
-        .build()
 
 
     LaunchedEffect(lensFacing, cameraZoomRatio.value) {// this will run every time we change the lensFacing
@@ -147,7 +129,7 @@ fun CameraView() {
         if (showProgressBar.value) {
 
             LinearProgressIndicator(
-                progress = progress,
+                progress = progress.value,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 70.dp, end = 70.dp)
